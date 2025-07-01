@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MR YOUNG FARGO - Multi-Color Text with Even Larger 3D Objects</title>
+    <!-- Google Font: Fredoka One for a rounded, playful look -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+    <!-- Three.js library for 3D rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        /* Main body styling for the background and overall layout */
+        body {
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            position: relative; /* Needed for absolute positioning of layers */
+
+            /* Background with purple and blue colors flowing from left to right */
+            background: linear-gradient(to right,
+                #8A2BE2, /* Blue Violet */
+                #4B0082, /* Indigo */
+                #4169E1, /* Royal Blue */
+                #00BFFF, /* Deep Sky Blue */
+                #1E90FF, /* Dodger Blue */
+                #6A5ACD  /* Slate Blue */
+            );
+            background-size: 200% auto; /* Make the gradient wider than the viewport */
+            animation: backgroundGradientShift 15s linear infinite alternate; /* Animate background position */
+        }
+
+        /* Animation for the background gradient to shift */
+        @keyframes backgroundGradientShift {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        /* Container for the 3D text (MR YOUNG FARGO) */
+        .name-container {
+            font-family: "Fredoka One", cursive; /* Rounded font */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap; /* Allow wrapping for smaller screens */
+            gap: 1.5rem; /* Space between words */
+            position: relative; /* Make it a positioning context for z-index */
+            z-index: 2; /* Ensure text is above the 3D canvas */
+        }
+
+        /* Styling for individual words */
+        .word-3d {
+            font-size: 6rem; /* Bigger font size */
+            font-weight: 900; /* Extra bold */
+            transform-style: preserve-3d;
+            transition: transform 0.4s ease-in-out; /* Smooth hover transition */
+            cursor: pointer;
+            position: relative;
+
+            /* Gradient text color that fades across the words */
+            background-image: linear-gradient(to right,
+                #FF0000, /* Bright Red */
+                #FF8C00, /* Dark Orange */
+                #FFFF00, /* Bright Yellow */
+                #00FF00, /* Bright Green */
+                #00FFFF, /* Bright Cyan */
+                #0000FF, /* Bright Blue */
+                #FF00FF  /* Bright Magenta */
+            );
+            background-size: 200% auto; /* Make the gradient wider than the text */
+            background-position: 0% 50%; /* Start gradient from the left */
+            animation: textGradientShift 8s linear infinite alternate; /* Animate text gradient position */
+
+            -webkit-background-clip: text; /* Clip background to text shape */
+            -webkit-text-fill-color: transparent; /* Make text color transparent to show background */
+
+            /* NO text-shadow properties - as requested */
+        }
+
+        /* Animation for the text gradient to shift */
+        @keyframes textGradientShift {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        .word-3d:hover {
+            transform: translateZ(70px) rotateX(15deg) rotateY(15deg); /* Lift and rotate on hover */
+        }
+
+        /* Responsive adjustments for text */
+        @media (max-width: 768px) {
+            .word-3d {
+                font-size: 4.5rem; /* Adjusted font size for tablets */
+            }
+        }
+
+        @media (max-width: 480px) {
+            .word-3d {
+                font-size: 3.5rem; /* Adjusted font size for mobile */
+            }
+            .name-container {
+                flex-direction: column; /* Stack words vertically on very small screens */
+                gap: 1rem;
+            }
+        }
+
+        /* Styling for the Three.js canvas */
+        #threejs-canvas {
+            position: absolute; /* Position absolutely to layer it */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1; /* Ensure it's behind the text */
+            background: transparent; /* Make sure the canvas background is transparent */
+        }
+    </style>
+</head>
+<body>
+    <!-- This is the Three.js canvas where 3D objects will be rendered -->
+    <canvas id="threejs-canvas"></canvas>
+
+    <!-- This is your existing MR YOUNG FARGO text -->
+    <div class="name-container">
+        <div class="word-3d">MR</div>
+        <div class="word-3d">YOUNG</div>
+        <div class="word-3d">FARGO</div>
+    </div>
+
+    <script>
+        // --- Three.js Setup ---
+        let scene, camera, renderer, objectGroup;
+        let mouseX = 0, mouseY = 0;
+        let windowHalfX = window.innerWidth / 2;
+        let windowHalfY = window.innerHeight / 2;
+
+        function initThreeJS() {
+            // Scene
+            scene = new THREE.Scene();
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(
+                75, // Field of view
+                window.innerWidth / window.innerHeight, // Aspect ratio
+                0.1, // Near clipping plane
+                1000 // Far clipping plane
+            );
+            camera.position.z = 10; // Position camera back to see objects
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({
+                canvas: document.getElementById('threejs-canvas'), // Use the specific canvas element
+                alpha: true, // Enable transparency for the canvas background
+                antialias: true // Smooth edges
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio); // For sharper rendering on high-DPI screens
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); // Soft white light
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); // Brighter light from a direction
+            directionalLight.position.set(0, 1, 1).normalize();
+            scene.add(directionalLight);
+
+            // Group to hold all objects for easier rotation
+            objectGroup = new THREE.Group();
+            scene.add(objectGroup);
+
+            // Define different colors for each object
+            const colors = [
+                0xFF0000, // Red
+                0x00FF00, // Green
+                0x0000FF, // Blue
+                0xFFFF00, // Yellow
+                0xFF00FF  // Magenta
+            ];
+
+            // Sphere - Made even larger, now with a distinct color
+            const sphereGeometry = new THREE.SphereGeometry(25, 32, 32);
+            const sphereMaterial = new THREE.MeshPhongMaterial({
+                color: colors[0], // Assign first color
+                specular: 0x050505, shininess: 100, flatShading: true
+            });
+            const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+            sphere.position.set(-60, -30, -90);
+            objectGroup.add(sphere);
+
+            // Torus - Made even larger, now with a distinct color
+            const torusGeometry = new THREE.TorusGeometry(30, 8, 16, 100);
+            const torusMaterial = new THREE.MeshPhongMaterial({
+                color: colors[1], // Assign second color
+                specular: 0x050505, shininess: 100, flatShading: true
+            });
+            const torus = new THREE.Mesh(torusGeometry, torusMaterial);
+            torus.position.set(60, 35, -95);
+            objectGroup.add(torus);
+
+            // Icosahedron - Made even larger, now with a distinct color
+            const icosahedronGeometry = new THREE.IcosahedronGeometry(28);
+            const icosahedronMaterial = new THREE.MeshPhongMaterial({
+                color: colors[2], // Assign third color
+                specular: 0x050505, shininess: 100, flatShading: true
+            });
+            const icosahedron = new THREE.Mesh(icosahedronGeometry, icosahedronMaterial);
+            icosahedron.position.set(0, -45, -88);
+            objectGroup.add(icosahedron);
+
+            // Cone - Made even larger, now with a distinct color
+            const coneGeometry = new THREE.ConeGeometry(25, 50, 32);
+            const coneMaterial = new THREE.MeshPhongMaterial({
+                color: colors[3], // Assign fourth color
+                specular: 0x050505, shininess: 100, flatShading: true
+            });
+            const cone = new THREE.Mesh(coneGeometry, coneMaterial);
+            cone.position.set(-65, 40, -100);
+            objectGroup.add(cone);
+
+            // Dodecahedron - Made even larger, now with a distinct color
+            const dodecahedronGeometry = new THREE.DodecahedronGeometry(26);
+            const dodecahedronMaterial = new THREE.MeshPhongMaterial({
+                color: colors[4], // Assign fifth color
+                specular: 0x050505, shininess: 100, flatShading: true
+            });
+            const dodecahedron = new THREE.Mesh(dodecahedronGeometry, dodecahedronMaterial);
+            dodecahedron.position.set(65, -40, -97);
+            objectGroup.add(dodecahedron);
+
+
+            // Event Listeners for responsiveness and mouse interaction
+            window.addEventListener('resize', onWindowResizeThreeJS, false);
+            document.addEventListener('mousemove', onDocumentMouseMoveThreeJS, false);
+            document.addEventListener('mousedown', onDocumentMouseDownThreeJS, false);
+            document.addEventListener('mouseup', onDocumentMouseUpThreeJS, false);
+            document.addEventListener('mouseleave', onDocumentMouseUpThreeJS, false); // Stop dragging if mouse leaves window
+        }
+
+        // Handle window resizing for Three.js
+        function onWindowResizeThreeJS() {
+            windowHalfX = window.innerWidth / 2;
+            windowHalfY = window.innerHeight / 2;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Mouse interaction variables for Three.js
+        let isDraggingThreeJS = false;
+        let previousMouseXThreeJS = 0;
+        let previousMouseYThreeJS = 0;
+
+        function onDocumentMouseDownThreeJS(event) {
+            isDraggingThreeJS = true;
+            previousMouseXThreeJS = event.clientX;
+            previousMouseYThreeJS = event.clientY;
+        }
+
+        function onDocumentMouseUpThreeJS(event) {
+            isDraggingThreeJS = false;
+        }
+
+        function onDocumentMouseMoveThreeJS(event) {
+            if (!isDraggingThreeJS) return;
+
+            const deltaX = event.clientX - previousMouseXThreeJS;
+            const deltaY = event.clientY - previousMouseYThreeJS;
+
+            // Rotate the group of objects based on mouse movement
+            objectGroup.rotation.y += deltaX * 0.005;
+            objectGroup.rotation.x += deltaY * 0.005;
+
+            previousMouseXThreeJS = event.clientX;
+            previousMouseYThreeJS = event.clientY;
+        }
+
+        // Animation loop for Three.js
+        function animateThreeJS() {
+            requestAnimationFrame(animateThreeJS);
+
+            // Rotate objects within the group for a subtle dynamic feel
+            objectGroup.children.forEach(obj => {
+                obj.rotation.x += 0.002;
+                obj.rotation.y += 0.002;
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        // Start the Three.js scene when the window loads
+        window.onload = function () {
+            initThreeJS();
+            animateThreeJS();
+        };
+    </script>
+</body>
+</html>
